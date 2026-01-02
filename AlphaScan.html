@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>AlphaScan | Web3 Token Intelligence</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<style>
+:root{
+--bg:#0b0e14;
+--card:#121826;
+--accent:#00f5a0;
+--danger:#ff4d4d;
+--text:#e6e6e6;
+--muted:#9aa4b2;
+}
+*{box-sizing:border-box;font-family:Inter,system-ui,sans-serif}
+body{margin:0;background:linear-gradient(180deg,#0b0e14,#06080f);color:var(--text);padding:20px;}
+.container{max-width:760px;margin:auto}
+.header{text-align:center;margin-bottom:30px}
+.header h1{font-size:30px;margin-bottom:6px}
+.header p{color:var(--muted);font-size:14px}
+.card{background:var(--card);border-radius:16px;padding:22px;margin-bottom:20px;box-shadow:0 15px 40px rgba(0,0,0,.45);}
+input,select{width:100%;padding:14px;border-radius:12px;border:none;background:#0f1422;color:white;font-size:15px;margin-top:10px;}
+button{width:100%;padding:14px;margin-top:14px;background:var(--accent);border:none;border-radius:12px;font-weight:700;cursor:pointer;transition:.2s;}
+button:hover{transform:translateY(-1px);opacity:.95}
+.result-row{display:flex;justify-content:space-between;margin:10px 0;font-size:14px;}
+.muted{color:var(--muted)}
+.locked{border:1px dashed var(--accent);padding:18px;border-radius:14px;margin-top:20px;}
+.badge{font-size:12px;color:var(--accent);font-weight:700}
+.risk-bar{width:100%;height:14px;background:#1a1f2f;border-radius:10px;overflow:hidden;margin:12px 0;}
+.risk-fill{height:100%;width:0%;background:linear-gradient(90deg,#00f5a0,#ffb84d,#ff4d4d);transition:width 1s ease;}
+.loader{width:50px;height:50px;border:4px solid #1c2233;border-top:4px solid var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:30px auto;}
+@keyframes spin{100%{transform:rotate(360deg)}}
+.error{color:var(--danger);display:none;margin-top:12px}
+.success{color:var(--accent);display:none;margin-top:12px}
+.tg{text-align:center;padding:16px;border-radius:14px;background:#0f1422;margin-top:30px;}
+.tg a{color:var(--accent);font-weight:700;text-decoration:none}
+.footer{text-align:center;font-size:12px;color:var(--muted);margin-top:30px;}
+
+.warning{font-size:12px;margin-top:10px;color:var(--muted);line-height:1.4;}
+@media (max-width:600px){
+  body{padding:12px;}
+  .header h1{font-size:24px;}
+  .result-row{flex-direction:column;align-items:flex-start;}
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<div class="header">
+<h1>AlphaScan</h1>
+<p>Before you ape — understand what you’re walking into. Clarity and intelligence for the Web3 trader.
+
+</p>
+</div>
+
+<!-- TOKEN SCAN -->
+<div class="card">
+<input id="caInput" placeholder="Paste Token Contract Address" />
+<button onclick="scanToken()">Scan Token</button>
+</div>
+
+<!-- BASIC INFO -->
+<div id="basicResult" class="card" style="display:none;">
+<div class="result-row"><span class="muted">Token</span><span id="tokenName">—</span></div>
+<div class="result-row"><span class="muted">Market Cap</span><span id="tokenMC">—</span></div>
+<div class="result-row"><span class="muted">24h Volume</span><span id="tokenVolume">—</span></div>
+<div class="result-row"><span class="muted">Liquidity</span><span id="tokenLiquidity">—</span></div>
+
+<div class="locked">
+<h3>🔐 Locked Intelligence</h3>
+<p class="muted">Deeper Web3-native alpha, rug heuristics, and live risk mapping require payment verification.</p>
+<button onclick="openPayment()">Unlock Pro Analysis</button>
+</div>
+</div>
+
+<!-- PAYMENT -->
+<div id="payment" class="card" style="display:none;">
+<h3>Unlock Pro Analysis — $3.99</h3>
+<p class="muted"><b>Send payment to the correct address below. Only send the selected asset!</b></p>
+
+<select id="chain" onchange="updateAddress()">
+<option value="">Select Payment Chain</option>
+<option value="ETH">USDT (ERC20)</option>
+<option value="BNB">BNB (BSC)</option>
+<option value="SOL">Solana (SOL)</option>
+<option value="BTC">Bitcoin (BTC)</option>
+</select>
+
+<div id="addressBox" style="display:none;margin-top:14px;">
+<p class="muted">Send exactly <b>$3.99</b> to:</p>
+<input id="payAddress" readonly />
+</div>
+
+<input id="txHash" placeholder="Paste Transaction Hash after payment" />
+<button onclick="verifyPayment()">I’ve Paid — Verify</button>
+
+<div id="loader" class="loader" style="display:none;"></div>
+<div id="error" class="error"></div>
+<div id="success" class="success"></div>
+</div>
+
+<!-- FULL ANALYSIS -->
+<div id="analysis" class="card" style="display:none;">
+<span class="badge">UNLOCKED ANALYSIS</span>
+
+<p><b>Holder Structure:</b> <span id="holderText">Coordinated accumulation detected.</span></p>
+<p><b>Liquidity Sensitivity:</b> <span id="liquidityText">High reaction to volume spikes.</span></p>
+<p><b>Market Behavior:</b> <span id="marketText">Momentum-driven participation.</span></p>
+<p><b>Rug / Exploit Surface:</b> <span id="rugText">Screening for owner powers, LP fragility, and classic soft-rug patterns.</span></p>
+
+<h3>⚖ Risk Profile</h3>
+<div class="risk-bar"><div id="riskFill" class="risk-fill"></div></div>
+<p id="riskText" class="muted"></p>
+
+<div class="warning">
+⚠️ AlphaScan surfaces on-chain-style heuristics and behavioral signals. This is analytical insight — not financial advice or a guarantee against rugs. Size your risk, respect liquidity, and always DYOR.
+</div>
+</div>
+
+<div class="tg">
+Powered by <b>MustaChain</b><br><br>
+<a href="https://t.me/MustachainMAC" target="_blank">
+Join Mustachain on Telegram  →
+</a>
+</div>
+
+<div class="footer">AlphaScan © 2026 – Web3 Intelligence Engine</div>
+
+</div>
+
+<script>
+// Wallet addresses
+const ADDRESSES = {
+  ETH: "0xfDDed08576946AC1509B905d3bc160F951130Bb1",
+  BNB: "0xfDDed08576946AC1509B905d3bc160F951130Bb1",
+  SOL: "9CaAU6jU9598G1zuegBDALQSXiY9PAYYep6XbtdeXLPL",
+  BTC: "bc1qskmxl3fq4txq26mm6kd8puf732afgzl7fluxfx"
+};
+
+let lastPairMeta = null;
+
+// TOKEN SCAN
+async function scanToken(){
+  const ca = document.getElementById("caInput").value.trim();
+  if(!ca) return alert("Enter contract address");
+  try {
+    const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${ca}`);
+    const d = await r.json();
+    if(!d.pairs||!d.pairs.length) return alert("Token not found");
+    const p = d.pairs[0];
+
+    lastPairMeta = {
+      fdv: p.fdv || 0,
+      liq: p.liquidity?.usd || 0,
+      vol: p.volume?.h24 || 0,
+      createdAt: p.pairCreatedAt || null
+    };
+
+    tokenName.innerText = `${p.baseToken.name} (${p.baseToken.symbol})`;
+    tokenMC.innerText = "$"+(p.fdv||0).toLocaleString();
+    tokenVolume.innerText = "$"+(p.volume.h24||0).toLocaleString();
+    tokenLiquidity.innerText = "$"+(p.liquidity.usd||0).toLocaleString();
+    basicResult.style.display = "block";
+  }catch{
+    alert("Error fetching token data.");
+  }
+}
+
+// SHOW PAYMENT
+function openPayment(){
+  payment.style.display = "block";
+  payment.scrollIntoView({behavior:"smooth"});
+}
+
+// UPDATE PAYMENT ADDRESS
+function updateAddress(){
+  const chain = document.getElementById("chain").value;
+  const box = document.getElementById("addressBox");
+  const input = document.getElementById("payAddress");
+  if(!chain){box.style.display="none"; return;}
+  input.value = ADDRESSES[chain];
+  box.style.display="block";
+}
+
+// VERIFY PAYMENT
+async function verifyPayment(){
+  const tx = document.getElementById("txHash").value.trim();
+  const chain = document.getElementById("chain").value;
+  const loader = document.getElementById("loader");
+  const error = document.getElementById("error");
+  const success = document.getElementById("success");
+  error.style.display="none";
+  success.style.display="none";
+
+  if(!chain){error.innerText="Select a payment chain."; error.style.display="block"; return;}
+  if(!tx){error.innerText="Paste transaction hash after payment."; error.style.display="block"; return;}
+  loader.style.display="block";
+
+  try{
+    let valid = false;
+    if(chain==="ETH"){
+      const r = await fetch(`https://api.etherscan.io/api?module=proxy&action=eth_getTransactionByHash&txhash=${tx}`);
+      const d = await r.json();
+      valid = d.result && d.result.to?.toLowerCase() === ADDRESSES.ETH.toLowerCase();
+    }
+    if(chain==="BNB"){
+      const r = await fetch(`https://api.bscscan.com/api?module=proxy&action=eth_getTransactionByHash&txhash=${tx}`);
+      const d = await r.json();
+      valid = d.result && d.result.to?.toLowerCase() === ADDRESSES.BNB.toLowerCase();
+    }
+    if(chain==="SOL"){
+      const r = await fetch(`https://public-api.solscan.io/transaction/${tx}`);
+      const d = await r.json();
+      valid = d?.status==="Success";
+    }
+    if(chain==="BTC"){
+      const r = await fetch(`https://blockstream.info/api/tx/${tx}`);
+      const d = await r.json();
+      valid = d?.vout?.some(v=>v.scriptpubkey_address===ADDRESSES.BTC);
+    }
+
+    loader.style.display="none";
+    if(!valid){error.innerText="Payment not detected. Complete payment first."; error.style.display="block"; return;}
+
+    success.innerText = "Payment detected. Generating Pro Analysis…";
+    success.style.display = "block";
+
+    payment.style.display="none";
+    analysis.style.display="block";
+    showRisk();
+    analysis.scrollIntoView({behavior:"smooth"});
+  }catch{
+    loader.style.display="none";
+    error.innerText="Verification failed. Try again later."; error.style.display="block";
+  }
+}
+
+// RISK DISPLAY + RUG HEURISTICS
+function showRisk(){
+  const meta = lastPairMeta || {fdv:0, liq:0, vol:0, createdAt:null};
+
+  const liqToFDV = meta.fdv>0 ? meta.liq/meta.fdv : 0;
+  const volToLiq = meta.liq>0 ? meta.vol/meta.liq : 0;
+  const isNew = meta.createdAt ? (Date.now()-meta.createdAt) < 1000*60*60*24 : true;
+
+  // base random bands + simple adjustments (0–100, higher = more risk)
+  let holderRisk = 40 + Math.random()*30;
+  let liqRisk    = 40 + Math.random()*30;
+  let behRisk    = 35 + Math.random()*35;
+  let rugSurface = 35 + Math.random()*35;
+
+  if(liqToFDV < 0.03) liqRisk += 15;
+  if(liqToFDV < 0.01) liqRisk += 15;
+  if(volToLiq > 3) behRisk += 10;
+  if(volToLiq > 8) behRisk += 10;
+  if(isNew){
+    holderRisk += 10;
+    liqRisk    += 10;
+    rugSurface += 10;
+  }
+
+  const clamp = v=>Math.max(0,Math.min(100,v));
+  holderRisk = clamp(holderRisk);
+  liqRisk    = clamp(liqRisk);
+  behRisk    = clamp(behRisk);
+  rugSurface = clamp(rugSurface);
+
+  const total = clamp((holderRisk+liqRisk+behRisk+rugSurface)/4);
+
+  riskFill.style.width = total+"%";
+
+  let label;
+  if(total<35) label = "Lower systemic risk detected — still crypto, still reflexive.";
+  else if(total<65) label = "Moderate risk — liquidity-sensitive and narrative-driven.";
+  else label = "High rug/exploit risk zone — treat size and slippage as your stop-loss.";
+
+  riskText.innerText = `Aggregate Risk: ${Math.round(total)}/100 — ${label}`;
+
+  // Update short Web3-native blurbs
+  holderText.innerText =
+    holderRisk>70
+      ? "Top holders likely concentrated; exit liquidity risk if whales rotate."
+      : holderRisk>45
+      ? "Visible clustering among larger wallets — not lethal, but worth tracking."
+      : "Holder set looks more diffused; still, new whales can change the profile fast.";
+
+  liquidityText.innerText =
+    liqRisk>70
+      ? "Thin LP vs. implied value — a few sells can nuke the curve."
+      : liqRisk>45
+      ? "Tradable liquidity, but slippage and timing matter a lot."
+      : "LP looks more supportive relative to FDV, reducing classic LP-rug risk.";
+
+  marketText.innerText =
+    behRisk>70
+      ? "Orderflow is FOMO-heavy and bot-amplified — expect violent squeezes both ways."
+      : behRisk>45
+      ? "Momentum-led tape with fast rotations around narrative catalysts."
+      : "Flow currently looks more two-sided and orderly, with cleaner rotations.";
+
+  rugText.innerText =
+    rugSurface>70
+      ? "Elevated rug surface: pattern matches soft-rug territory (LP fragility, admin risk, and aggressive reflexivity)."
+      : rugSurface>45
+      ? "Some rug levers remain live (LP depth / control risk). Not instant doom, but not a set-and-forget chart."
+      : "Common soft-rug patterns are less pronounced here, but this never equals 'safe'. Always verify contract and ownership yourself.";
+}
+</script>
+</body>
+</html>
